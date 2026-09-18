@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DTS 304 — QUERY DRILL</title>
+<style>
+  :root {
+    --bg: #F4F7F9;
+    --panel: #FFFFFF;
+    --panel-2: #F8FAFC;
+    --border: #E2E8F0;
+    --border-soft: #EDF2F7;
+    --text: #1E293B;
+    --muted: #64748B;
+    --teal: #0D9488;
+    --teal-dim: #CCFBF1;
+    --amber: #D97706;
+    --amber-dim: #FEF3C7;
+    --red: #E11D48;
+    --red-dim: #FFE4E6;
+    --violet: #7C3AED;
+    --violet-dim: #EDE9FE;
+    --row-alt: #F1F5F9;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  }
+  
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 32px 16px 60px;
+    line-height: 1.6;
+  }
+  .mono { font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; }
+  .wrap { width: 100%; max-width: 800px; }
+
+  /* Animations */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate-in { animation: fadeUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+  /* ---- Header / console bar ---- */
+  .console {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 12px 12px 0 0;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: var(--shadow);
+  }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot.r { background: #FF5F56; } 
+  .dot.y { background: #FFBD2E; } 
+  .dot.g { background: #27C93F; }
+  .console-label {
+    margin-left: 12px; font-size: 13px; color: var(--muted); font-weight: 500;
+  }
+
+  .titlebar {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-top: none;
+    padding: 28px 32px 24px;
+    box-shadow: var(--shadow);
+  }
+  h1 { font-size: 28px; margin: 0 0 6px; font-weight: 800; color: var(--text); }
+  h1 span { color: var(--teal); }
+  .sub { color: var(--muted); font-size: 15px; margin: 0; }
+
+  /* ---- Difficulty bumper ---- */
+  .bumper { display: flex; gap: 8px; margin-top: 24px; }
+  .tier {
+    flex: 1; padding: 10px 8px; border-radius: 8px; text-align: center;
+    font-size: 12px; font-weight: 700; letter-spacing: .05em; 
+    color: var(--muted); background: var(--panel-2);
+    border: 1px solid var(--border-soft);
+    transition: all .3s ease;
+  }
+  .tier.done { color: var(--text); opacity: 0.5; }
+  .tier[data-t="0"].active { background: var(--teal-dim); color: var(--teal); border-color: var(--teal); }
+  .tier[data-t="1"].active { background: var(--amber-dim); color: var(--amber); border-color: var(--amber); }
+  .tier[data-t="2"].active { background: var(--red-dim); color: var(--red); border-color: var(--red); }
+  .tier[data-t="3"].active { background: var(--violet-dim); color: var(--violet); border-color: var(--violet); }
+
+  /* ---- Nav Tabs ---- */
+  .nav-tabs {
+    display: flex; gap: 12px; margin-bottom: 20px;
+  }
+  .tab-btn {
+    flex: 1; padding: 14px; border: 1px solid var(--border);
+    background: var(--panel); color: var(--text);
+    border-radius: 8px; font-weight: 600; cursor: pointer;
+    transition: all 0.2s; box-shadow: var(--shadow);
+  }
+  .tab-btn:hover { background: var(--panel-2); transform: translateY(-1px); }
+  .tab-btn.active { border-color: var(--teal); background: var(--teal-dim); color: var(--teal); }
+
+  /* ---- progress ---- */
+  .progress-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 18px 32px 0; background: var(--panel); 
+    border-left: 1px solid var(--border); border-right: 1px solid var(--border);
+    font-size: 13px; font-weight: 600; color: var(--muted);
+  }
+  .progress-track {
+    height: 8px; background: var(--panel-2); border-radius: 6px; overflow: hidden;
+    margin: 12px 32px 24px; border: 1px solid var(--border-soft);
+  }
+  .progress-fill {
+    height: 100%; width: 0%; border-radius: 6px;
+    background: linear-gradient(90deg, var(--teal), var(--amber) 55%, var(--red) 80%, var(--violet));
+    transition: width .5s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  /* ---- question card ---- */
+  .card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-top: none; padding: 12px 32px 36px;
+    border-radius: 0 0 12px 12px; box-shadow: var(--shadow);
+  }
+  .qid {
+    font-size: 13px; font-weight: 600; color: var(--muted);
+    display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+  }
+  .qid .badge { padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 11px; }
+  .qtext { font-size: 19px; line-height: 1.5; font-weight: 600; margin: 0 0 24px; }
+  
+  .options { display: flex; flex-direction: column; gap: 12px; }
+  .opt {
+    text-align: left; width: 100%; padding: 16px 20px; border-radius: 10px;
+    background: var(--panel); border: 2px solid var(--border-soft); color: var(--text);
+    font-size: 15px; font-weight: 500; cursor: pointer;
+    display: flex; align-items: center; gap: 16px;
+    transition: all .2s ease;
+  }
+  .opt:hover:not(.locked) { border-color: var(--teal); background: var(--panel-2); transform: translateX(4px); }
+  .opt .k { font-size: 13px; font-weight: 700; color: var(--muted); width: 24px; flex-shrink: 0; }
+  .opt.correct { border-color: var(--teal); background: var(--teal-dim); }
+  .opt.correct .k { color: var(--teal); }
+  .opt.wrong { border-color: var(--red); background: var(--red-dim); }
+  .opt.wrong .k { color: var(--red); }
+  .opt.locked { cursor: default; }
+  .opt.dim { opacity: .4; }
+
+  .explain {
+    margin-top: 24px; padding: 16px 20px; border-radius: 10px; font-size: 14.5px;
+    background: var(--panel-2); border: 1px solid var(--border);
+    color: var(--text); display: none;
+  }
+  .explain.show { display: block; animation: fadeUp 0.3s ease; }
+
+  .footer-row { display: flex; justify-content: space-between; align-items: center; margin-top: 28px; }
+  .streak { font-size: 13px; font-weight: 600; color: var(--muted); }
+  .streak b { color: var(--amber); font-size: 15px; }
+  
+  .btn-primary {
+    background: var(--teal); color: white; border: none; padding: 12px 28px;
+    border-radius: 8px; font-weight: 600; font-size: 15px;
+    cursor: pointer; transition: all .2s ease;
+    box-shadow: 0 2px 4px rgba(13, 148, 136, 0.2);
+  }
+  .btn-primary:hover { background: #0F766E; transform: translateY(-1px); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  /* ---- Database Tables DB Viewer ---- */
+  .db-viewer { display: none; margin-bottom: 24px; padding: 16px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; max-height: 250px; overflow-y: auto; }
+  .db-viewer.show { display: block; }
+  .db-table-wrapper { margin-bottom: 16px; }
+  .db-table-wrapper h3 { font-size: 14px; margin: 0 0 8px; color: var(--teal); }
+  table.db { width: 100%; border-collapse: collapse; font-size: 12px; background: white; }
+  table.db th, table.db td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; }
+  table.db th { background: var(--row-alt); font-weight: 600; }
+  
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="console">
+    <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+    <span class="console-label mono">mysql&gt; SOURCE dts304_notes.sql</span>
+  </div>
+
+  <div class="titlebar">
+    <h1>QUERY <span>DRILL</span></h1>
+    <p class="sub">DTS 304 · Data Management — Exam-prep objectives</p>
+    
+    <div class="bumper" id="bumper">
+      <div class="tier" data-t="0">EASY</div>
+      <div class="tier" data-t="1">MEDIUM</div>
+      <div class="tier" data-t="2">HARD</div>
+      <div class="tier" data-t="3">EXPERT</div>
+    </div>
+  </div>
+
+  <div class="card animate-in" id="startScreen">
+    <div class="nav-tabs">
+      <button class="tab-btn active" id="tabTheory">Theory Drill</button>
+      <button class="tab-btn" id="tabPractical">Practical Scenarios</button>
+    </div>
+
+    <div id="theoryMenu">
+      <p class="qtext" style="margin-bottom:8px;">Choose your drill mode</p>
+      <p class="sub" style="margin:0 0 24px;">Progressive mixed runs 30-100 random questions scaling in difficulty. Single tiers target a 40-question bank per difficulty.</p>
+      <div class="options">
+        <button type="button" class="opt" data-mode="mixed">
+          <span class="k">⚡</span><span><strong>PROGRESSIVE MIXED</strong> <br><small style="color:var(--muted)">30 - 100 Random Questions</small></span>
+        </button>
+        <button type="button" class="opt" data-mode="0" style="border-left-color:var(--teal)">
+          <span class="k" style="color:var(--teal)">E</span><span><strong>EASY TIER</strong> <br><small style="color:var(--muted)">40 Questions</small></span>
+        </button>
+        <button type="button" class="opt" data-mode="1" style="border-left-color:var(--amber)">
+          <span class="k" style="color:var(--amber)">M</span><span><strong>MEDIUM TIER</strong> <br><small style="color:var(--muted)">40 Questions</small></span>
+        </button>
+        <button type="button" class="opt" data-mode="2" style="border-left-color:var(--red)">
+          <span class="k" style="color:var(--red)">H</span><span><strong>HARD TIER</strong> <br><small style="color:var(--muted)">40 Questions</small></span>
+        </button>
+        <button type="button" class="opt" data-mode="3" style="border-left-color:var(--violet)">
+          <span class="k" style="color:var(--violet)">X</span><span><strong>EXPERT TIER</strong> <br><small style="color:var(--muted)">40 Questions</small></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="progress-row hidden" id="progressRow">
+    <span id="qcounter">Question 1 / 40</span>
+    <span id="scoretag">SCORE 0</span>
+  </div>
+  <div class="progress-track hidden" id="progressTrack"><div class="progress-fill" id="progFill"></div></div>
+
+  <div class="card hidden animate-in" id="quizCard">
+    <div class="qid">
+      <span class="mono" id="qidNum">Q01</span>
+      <span class="badge" id="qBadge">EASY</span>
+    </div>
+
+    <!-- Practical DB Viewer -->
+    <div class="db-viewer mono" id="dbViewer">
+      <div class="db-table-wrapper">
+        <h3>1. students</h3>
+        <table class="db"><tr><th>student_id</th><th>student_name</th><th>gender</th><th>department_id</th></tr><tr><td>1001</td><td>Ada Okafor</td><td>Female</td><td>101</td></tr><tr><td>1002</td><td>Chinedu Eze</td><td>Male</td><td>102</td></tr><tr><td>1003</td><td>Blessing Nwosu</td><td>Female</td><td>101</td></tr></table>
+      </div>
+      <div class="db-table-wrapper">
+        <h3>2. departments</h3>
+        <table class="db"><tr><th>department_id</th><th>department_name</th><th>location</th></tr><tr><td>101</td><td>Computer and Robotics Education</td><td>Nsukka</td></tr><tr><td>102</td><td>Computer Science</td><td>Nsukka</td></tr><tr><td>103</td><td>Information Technology</td><td>Enugu Campus</td></tr></table>
+      </div>
+      <div class="db-table-wrapper">
+        <h3>3. Accounts</h3>
+        <table class="db"><tr><th>AccountNo</th><th>Customer</th><th>Balance</th></tr><tr><td>A001</td><td>Ada</td><td>₦200,000</td></tr><tr><td>A002</td><td>John</td><td>₦100,000</td></tr><tr><td>A003</td><td>Grace</td><td>₦150,000</td></tr></table>
+      </div>
+      <!-- Remaining 7 tables will be populated via JS for brevity -->
+    </div>
+
+    <p class="qtext" id="qtext"></p>
+    <div class="options" id="options"></div>
+    <div class="explain" id="explain"></div>
+    <div class="footer-row">
+      <div class="streak">STREAK <b id="streakNum">0</b></div>
+      <button class="btn-primary" id="nextBtn" disabled>Next Question →</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
