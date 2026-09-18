@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DTS 304 — QUERY DRILL</title>
+<style>
+  :root {
+    --bg: #F4F7F9;
+    --panel: #FFFFFF;
+    --panel-2: #F8FAFC;
+    --border: #E2E8F0;
+    --border-soft: #EDF2F7;
+    --text: #1E293B;
+    --muted: #64748B;
+    --teal: #0D9488;
+    --teal-dim: #CCFBF1;
+    --amber: #D97706;
+    --amber-dim: #FEF3C7;
+    --red: #E11D48;
+    --red-dim: #FFE4E6;
+    --violet: #7C3AED;
+    --violet-dim: #EDE9FE;
+    --row-alt: #F1F5F9;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 32px 16px 60px;
+    line-height: 1.6;
+  }
+  .mono { font-family: 'SFMono-Regular', Consolas, monospace; }
+  .wrap { width: 100%; max-width: 900px; display: flex; flex-direction: column; }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .animate-in { animation: fadeUp 0.3s ease forwards; }
+
+  .console {
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 12px 12px 0 0; padding: 12px 20px;
+    display: flex; align-items: center; gap: 8px; box-shadow: var(--shadow);
+  }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot.r { background: #FF5F56; } .dot.y { background: #FFBD2E; } .dot.g { background: #27C93F; }
+  .console-label { margin-left: 12px; font-size: 13px; color: var(--muted); font-weight: 500; }
+
+  .titlebar {
+    background: var(--panel); border: 1px solid var(--border);
+    border-top: none; padding: 28px 32px 24px; box-shadow: var(--shadow);
+  }
+  h1 { font-size: 28px; margin: 0 0 6px; font-weight: 800; color: var(--text); }
+  h1 span { color: var(--teal); }
+  .sub { color: var(--muted); font-size: 15px; margin: 0; }
+
+  .bumper { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
+  .tier {
+    flex: 1 1 15%; padding: 10px 8px; border-radius: 8px; text-align: center;
+    font-size: 12px; font-weight: 700; letter-spacing: .05em;
+    color: var(--muted); background: var(--panel-2); border: 1px solid var(--border-soft);
+  }
+  .tier.active[data-t="0"] { background: var(--teal-dim); color: var(--teal); border-color: var(--teal); }
+  .tier.active[data-t="1"] { background: var(--amber-dim); color: var(--amber); border-color: var(--amber); }
+  .tier.active[data-t="2"] { background: var(--red-dim); color: var(--red); border-color: var(--red); }
+  .tier.active[data-t="3"] { background: var(--violet-dim); color: var(--violet); border-color: var(--violet); }
+  .tier.active[data-t="mixed"] { background: #E2E8F0; color: #0F172A; border-color: #94A3B8; }
+
+  .nav-tabs { display: flex; gap: 12px; margin-bottom: 20px; }
+  .tab-btn {
+    flex: 1; padding: 14px; border: 1px solid var(--border);
+    background: var(--panel); color: var(--text); border-radius: 8px;
+    font-weight: 600; cursor: pointer; transition: all 0.2s;
+  }
+  .tab-btn.active { border-color: var(--teal); background: var(--teal-dim); color: var(--teal); }
+
+  .progress-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 18px 32px 0; background: var(--panel);
+    border-left: 1px solid var(--border); border-right: 1px solid var(--border);
+    font-size: 13px; font-weight: 600; color: var(--muted);
+  }
+  .progress-track {
+    height: 8px; background: var(--panel-2); border-radius: 6px; overflow: hidden;
+    margin: 12px 32px 24px; border: 1px solid var(--border-soft);
+  }
+  .progress-fill { height: 100%; width: 0%; background: var(--teal); transition: width .3s; }
+
+  .card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-top: none; padding: 12px 32px 36px;
+    border-radius: 0 0 12px 12px; box-shadow: var(--shadow);
+  }
+  .qid { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
+  .qid-left { display: flex; align-items: center; gap: 12px; font-size: 13px; font-weight: 600; color: var(--muted); }
+  .badge { padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 11px; }
+
+  .btn-back {
+    background: var(--panel-2); border: 1px solid var(--border); color: var(--muted);
+    padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;
+  }
+  .btn-back:hover { background: var(--border-soft); color: var(--text); }
+
+  .qtext { font-size: 19px; line-height: 1.5; font-weight: 600; margin: 0 0 24px; }
+
+  .options { display: flex; flex-direction: column; gap: 12px; }
+  .opt {
+    text-align: left; padding: 16px 20px; border-radius: 10px;
+    background: var(--panel); border: 2px solid var(--border-soft); color: var(--text);
+    font-size: 15px; font-weight: 500; cursor: pointer; display: flex; gap: 16px; align-items: center;
+  }
+  .opt:hover:not(.locked) { border-color: var(--teal); background: var(--panel-2); }
+  .opt .k { font-size: 13px; font-weight: 700; color: var(--muted); width: 24px; flex-shrink: 0; }
+  .opt.correct { border-color: var(--teal); background: var(--teal-dim); }
+  .opt.wrong { border-color: var(--red); background: var(--red-dim); }
+  .opt.locked { cursor: default; }
+  .opt.dim { opacity: .4; }
+
+  .explain { margin-top: 24px; padding: 16px 20px; border-radius: 10px; font-size: 14px; background: var(--panel-2); border: 1px solid var(--border); display: none; }
+  .explain.show { display: block; }
+
+  .footer-row { display: flex; justify-content: space-between; align-items: center; margin-top: 28px; }
+  .streak { font-size: 13px; font-weight: 600; color: var(--muted); }
+  .streak b { color: var(--amber); font-size: 15px; }
+
+  .btn-primary {
+    background: var(--teal); color: white; border: none; padding: 14px 28px;
+    border-radius: 8px; font-weight: 600; font-size: 15px; cursor: pointer;
+  }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .db-viewer { display: none; margin-bottom: 24px; padding: 16px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; max-height: 400px; overflow-y: auto; }
+  .db-viewer.show { display: block; }
+  .db-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; }
+  .db-table-wrapper h3 { font-size: 13px; margin: 0 0 6px; color: var(--teal); }
+  .table-scroll { overflow-x: auto; }
+  table.db { width: 100%; border-collapse: collapse; font-size: 11px; background: white; white-space: nowrap; }
+  table.db th, table.db td { border: 1px solid var(--border); padding: 6px 8px; text-align: left; }
+  table.db th { background: var(--row-alt); font-weight: 600; }
+
+  .hidden { display: none !important; }
+
+  @media (max-width: 900px) {
+    .db-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  @media (max-width: 600px) {
+    body { padding: 12px 8px 30px; }
+    h1 { font-size: 24px; }
+    .titlebar { padding: 20px 16px 16px; }
+    .card { padding: 12px 16px 24px; }
+    .progress-row { padding: 16px 16px 0; }
+    .progress-track { margin: 12px 16px 20px; }
+
+    .bumper { gap: 6px; }
+    .tier { flex: 1 1 30%; font-size: 11px; padding: 8px 4px; }
+
+    .nav-tabs { flex-direction: column; gap: 8px; margin-bottom: 16px; }
+    .tab-btn { padding: 12px; font-size: 14px; }
+
+    .db-grid { grid-template-columns: 1fr; }
+    .db-viewer { max-height: 300px; padding: 12px; }
+
+    .qid { flex-direction: column; align-items: flex-start; }
+    .btn-back { width: 100%; text-align: center; padding: 10px; margin-top: 4px; }
+
+    .qtext { font-size: 17px; }
+    .opt { padding: 12px 16px; font-size: 14px; }
+
+    .footer-row { flex-direction: column; gap: 16px; align-items: stretch; text-align: center; }
+    .btn-primary { width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="console">
+    <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+    <span class="console-label mono">mysql&gt; EXAM_DRILL --init</span>
+  </div>
+
+  <div class="titlebar">
+    <h1 id="mainTitle">THEORY <span>DRILL</span></h1>
+    <p class="sub">DTS 304 · Data Management — Exam-prep objectives (sourced from lecture notes)</p>
+
+    <div class="bumper" id="bumper">
+      <div class="tier" data-t="0">EASY</div>
+      <div class="tier" data-t="1">MEDIUM</div>
+      <div class="tier" data-t="2">HARD</div>
+      <div class="tier" data-t="3">EXPERT</div>
+      <div class="tier" data-t="mixed">MIXED</div>
+    </div>
+  </div>
+
+  <div class="card animate-in" id="startScreen">
+    <div class="nav-tabs">
+      <button class="tab-btn active" id="tabTheory">Theory Concepts</button>
+      <button class="tab-btn" id="tabPractical">Practical Scenarios</button>
+    </div>
+
+    <div id="menuSelection">
+      <p class="qtext" style="margin-bottom:8px;">Select Difficulty Tier</p>
+      <p class="sub" style="margin:0 0 24px;">Progressive generates 30-100 random questions. Standard tiers contain exactly 40 questions.</p>
+      <div class="options">
+        <button class="opt mode-btn" data-mode="mixed" style="border-left-color:#94A3B8">
+          <span class="k" style="color:#64748B">⚡</span><span><strong>PROGRESSIVE MIXED</strong> <br><small style="color:var(--muted)">30 - 100 Random Questions</small></span>
+        </button>
+        <button class="opt mode-btn" data-mode="0" style="border-left-color:var(--teal)">
+          <span class="k" style="color:var(--teal)">E</span><span><strong>EASY TIER</strong> <br><small style="color:var(--muted)">Exactly 40 Questions</small></span>
+        </button>
+        <button class="opt mode-btn" data-mode="1" style="border-left-color:var(--amber)">
+          <span class="k" style="color:var(--amber)">M</span><span><strong>MEDIUM TIER</strong> <br><small style="color:var(--muted)">Exactly 40 Questions</small></span>
+        </button>
+        <button class="opt mode-btn" data-mode="2" style="border-left-color:var(--red)">
+          <span class="k" style="color:var(--red)">H</span><span><strong>HARD TIER</strong> <br><small style="color:var(--muted)">Exactly 40 Questions</small></span>
+        </button>
+        <button class="opt mode-btn" data-mode="3" style="border-left-color:var(--violet)">
+          <span class="k" style="color:var(--violet)">X</span><span><strong>EXPERT TIER</strong> <br><small style="color:var(--muted)">Exactly 40 Questions</small></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="progress-row hidden" id="progressRow">
+    <span id="qcounter">Question 1 / 40</span>
+    <span id="scoretag">SCORE 0</span>
+  </div>
+  <div class="progress-track hidden" id="progressTrack"><div class="progress-fill" id="progFill"></div></div>
+
+  <div class="card hidden animate-in" id="quizCard">
+    <div class="qid">
+      <div class="qid-left">
+        <span class="mono" id="qidNum">Q01</span>
+        <span class="badge" id="qBadge">EASY</span>
+      </div>
+      <button class="btn-back" id="backBtn">← Back to Menu</button>
+    </div>
+
+    <!-- 10 tables, all drawn from the DTS 304 lecture note examples -->
+    <div class="db-viewer mono" id="dbViewer">
+      <div class="db-grid">
+        <div class="db-table-wrapper">
+          <h3>1. students_info</h3>
+          <div class="table-scroll">
+            <table class="db"><tr><th>Reg_no</th><th>First_name</th><th>Surname</th><th>Department</th></tr><tr><td>2023/258511</td><td>Stephen</td><td>Anyanwu</td><td>1</td></tr><tr><td>2023/258512</td><td>John</td><td>Anyanwu</td><td>2</td></tr></table>
+          </div>
+        </div>
+        <div class="db-table-wrapper">
+          <h3>2. department_students</h3>
+          <div class="table-scroll">
+            <table class="db"><tr><th>department_id</th><th>department_name</th></tr><tr><td>1</td><td>Computer and Robotics Education</td></tr><tr><td>2</td><td>Business Education</td></tr></table>
+          </div>
+        </div>
+        <div class="db-table-wrapper">
+          <h3>3. students (equijoin)</h3>
+          <div class="table-scroll">
+            <table class="db"><tr><th>student_id</th><th>student_name</th><th>gender</th><th>department_id</th></tr><tr><td>1001</td><td>Ada Okafor</td><td>Female</td><td>101</td></tr><tr><td>1002</td><td>Chinedu Eze</td><td>Male</td><td>102</td></tr></table>
+          </div>
+        </div>
+        <div class="db-table-wrapper">
+          <h3>4. departments (equijoin)</h3>
+          <div class="table-scroll">
+            <table class="db"><tr><th>department_id</th><th>department_name</th><th>location</th></tr><tr><td>101</td><td>Computer and Robotics Education</td><td>Nsukka</td></tr><tr><td>102</td><td>Computer Science</td><td>Nsukka</td></tr></table>
+          </div>
+        </div>
+        <div class="db-table-wrapper">
+          <h3>5. STUDENT (outer join)</h3>
+          <div class="table-scroll">
+            <table class="db"><tr><th>STUDENT_ID</th><th>STUDENT_NAME</th><th>STUDENT_HOSTEL</th><th>DEPT_ID</th></tr><tr><td>S001</td><td>Ada Obi</td><td>Balewa</td><td>D01</td></tr><tr><td>S003</td><td>Chika Odo</td><td>Eni Njoku</td><td>D03</td></tr></table>
+          </div>
+        </div>
+        <div class="db-table-wrapper">
+          <h3>6. DEPARTMENT (outer join)</h3>
+          <div class="table-scroll">
+            <table class="db"><tr><th>DEPT_ID</th><th>DEPT_NAME</th><th>HOD</th><th>Faculty</th></tr><tr><td>D01</td><td>Computer and Robotics Education</td><td>Dr. Okafor</td><td>VTE</td></tr><tr><td>D04</td><td>Physics</td><td>Dr. Musa</td><td>Physical Sciences</td></tr></table>
+          </div>
+        </div>
+        <div class="db-table-wrapper">
+          <h3>7. Accounts</h3>
+          <div class="table-scroll">
+            <table class="db"><tr><th>AccountNo</th><th>Customer</th><th>Balance</th></tr><tr><td>A001</td><td>Ada</td><td>200000</td></tr><tr><td>A002</td><td>John</td><td>100000</td></tr></table>
+          </div>
+        </div>
+        <div class="db-table-wrapper">
+          <h3>8. Products</h3>
+          <div class="table-scroll">
+            <table class="db"><tr><th>ProductName</th><th>Price</th><th>Category</th></tr><tr><td>Laptop</td><td>250000</td><td>Computer</td></tr><tr><td>Drone</td><td>180000</td><td>Robotics</td></tr></table>
+          </div>
+        </div>
+        <div class="db-table-wrapper">
+          <h3>9. ComputerStudents</h3>
+          <div class="table-scroll">
+            <table class="db"><tr><th>StudentID</th><th>StudentName</th></tr><tr><td>1</td><td>Ada</td></tr><tr><td>2</td><td>Chinedu</td></tr></table>
+          </div>
+        </div>
+        <div class="db-table-wrapper">
+          <h3>10. RoboticsStudents</h3>
+          <div class="table-scroll">
+            <table class="db"><tr><th>StudentID</th><th>StudentName</th></tr><tr><td>4</td><td>Emeka</td></tr><tr><td>5</td><td>Ada</td></tr></table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="qtext" id="qtext"></p>
+    <div class="options" id="options"></div>
+    <div class="explain" id="explain"></div>
+    <div class="footer-row">
+      <div class="streak">STREAK <b id="streakNum">0</b></div>
+      <button class="btn-primary" id="nextBtn" disabled>Next Question →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // --- QUESTION BANK — all sourced from the DTS 304 lecture notes (Dr. Uzoegwu & Dr. Okpe) ---
+  const coreTheory = {
+    0: [
+      { q: "According to the lecture notes, what is 'data'?", opts: ["A collection of numbers, characters, and figures that has not yet been analyzed", "Information that has already been processed and organized", "A software application used to manage records", "A synonym for a database table"], ans: 0, exp: "Data is unanalyzed raw material; once analyzed, it becomes information." },
+      { q: "How is a database defined in the notes?", opts: ["A single unorganized file of text", "An organized collection of related information stored together for easy retrieval, access, and updating", "A programming language for managing files", "A hardware device used only for backups"], ans: 1, exp: "A database organizes related information for retrieval, access, and updating; it can be manual or digital." },
+      { q: "Which SQL command category is SELECT classified under?", opts: ["DDL", "DML", "DCL", "DQL"], ans: 3, exp: "SELECT is the only DQL (Data Query Language) command — it retrieves data." },
+      { q: "Which of these is a DDL command?", opts: ["INSERT", "UPDATE", "CREATE", "DELETE"], ans: 2, exp: "DDL commands (CREATE, ALTER, DROP) change the STRUCTURE of a table." },
+      { q: "What must a Primary Key be, according to the notes?", opts: ["Optional and allowed to repeat", "Both UNIQUE and NOT NULL", "Unique but allowed to be NULL", "Any data type including images"], ans: 1, exp: "A Primary Key must be unique and must never contain a NULL value." },
+      { q: "Which of the four database types contains descriptive information about documents such as titles, authors, and ISBNs?", opts: ["Bibliographic database", "Knowledge database", "Graphic-oriented database", "Decision-making database"], ans: 0, exp: "A bibliographic database stores descriptive details like titles, authors, journal numbers, ISBNs, keywords, and abstracts." },
+      { q: "Which type of database is used in artificial intelligence applications?", opts: ["Knowledge database", "Bibliographic database", "Graphic-oriented database", "Decision-making database"], ans: 0, exp: "A knowledge database contains data used in AI applications and can be very large." },
+      { q: "Which command permanently removes an entire table, structure and content?", opts: ["DELETE TABLE", "DROP TABLE", "REMOVE TABLE", "CLEAR TABLE"], ans: 1, exp: "DROP TABLE erases both the table's structure and its content entirely." },
+      { q: "Which command displays the structure of a table, including columns, data types and keys?", opts: ["SHOW", "DESCRIBE", "DISPLAY", "LIST"], ans: 1, exp: "DESCRIBE (or DESC) shows a table's structure — columns, data types, keys, and constraints." },
+      { q: "Which command is used to add a new record into a table?", opts: ["ADD", "INSERT", "ATTACH", "ENTER"], ans: 1, exp: "INSERT INTO ... VALUES (...) adds new record(s) into a table." },
+      { q: "Which command shows information about databases, tables, or variables in MySQL?", opts: ["VIEW", "SHOW", "LIST", "DISPLAY"], ans: 1, exp: "SHOW TABLES; and similar commands display information about MySQL objects." },
+      { q: "What does a RECORD (row) of a table represent?", opts: ["A single value inside a column", "A complete row containing all fields for one entity", "The name of a column", "A constraint applied to a table"], ans: 1, exp: "A record is a complete row of related data, containing all fields for one entity." }
+    ],
+    1: [
+      { q: "Which database model allows only one-to-many relationships, where a child record can have only one parent?", opts: ["Relational model", "Network model", "Hierarchical model", "Object model"], ans: 2, exp: "The Hierarchical model organizes data in a tree structure with one-to-many relationships only." },
+      { q: "What does a FOREIGN KEY do?", opts: ["Uniquely identifies rows in its own table", "References the primary key field of another table to link the tables", "Encrypts sensitive columns", "Automatically sorts records"], ans: 1, exp: "A foreign key is a field that references the primary key of another table, linking a child table to its parent table." },
+      { q: "Which clause/operator is used for pattern matching with wildcards such as % and _?", opts: ["IN", "LIKE", "BETWEEN", "IS NULL"], ans: 1, exp: "LIKE is used with wildcards to search for a pattern inside a text value." },
+      { q: "In a LIKE pattern, what does the % wildcard represent?", opts: ["Exactly one character", "Zero or more characters", "A NULL value", "A numeric digit only"], ans: 1, exp: "% matches zero or more characters, while the underscore ( _ ) matches exactly one character." },
+      { q: "What is an ALIAS in SQL, based on the notes?", opts: ["A permanent rename of a table in the database", "A temporary name given to a table or column for the duration of a query", "A type of foreign key", "A backup copy of a table"], ans: 1, exp: "An alias, created with AS, is temporary and does not change the actual table or column name." },
+      { q: "Which database model allows a child record to have multiple parents and a parent to have multiple children?", opts: ["Hierarchical model", "Network model", "Relational model", "Flat-file model"], ans: 1, exp: "The Network model allows many-to-many relationships between parent and child records." },
+      { q: "In the relational model, how is information about one entity stored?", opts: ["Spread across multiple unrelated files", "In a single row under different specified columns, all in the same row", "In a tree with one root per entity", "As a single unbroken string of text"], ans: 1, exp: "The relational model stores an entity's attributes in one row across specified columns in a table." },
+      { q: "Which SQL constraint ensures a column cannot be left empty?", opts: ["UNIQUE", "CHECK", "NOT NULL", "DEFAULT"], ans: 2, exp: "NOT NULL ensures a column must always contain a value." },
+      { q: "Which constraint assigns a value to a column automatically when none is provided?", opts: ["DEFAULT", "CHECK", "UNIQUE", "FOREIGN KEY"], ans: 0, exp: "DEFAULT applies a constant value to a field when no value is supplied." },
+      { q: "Using the column method of assigning constraints, where is the constraint written?", opts: ["Before the field name, in a separate line", "By the side of the field, e.g. Name char(25) NOT NULL", "Only inside a CREATE DATABASE statement", "At the very end of the whole script"], ans: 1, exp: "The column method places the constraint directly beside the field, e.g. Name char(25) NOT NULL." },
+      { q: "Can a field have a NOT NULL constraint without being a Primary Key?", opts: ["No, NOT NULL always means it is the primary key", "Yes, a NOT NULL field can still contain duplicates and not be a primary key", "No, only primary keys can use NOT NULL", "Yes, but only in foreign key columns"], ans: 1, exp: "A field can be NOT NULL without being a primary key, because a NOT NULL field can still have duplicate values." },
+      { q: "Which SQL wildcard pattern would find names that begin with 'EME'?", opts: ["%EME", "EME%", "%EME%", "_EME%"], ans: 1, exp: "EME% searches for any word that begins with the letters EME." }
+    ],
+    2: [
+      { q: "What is a Candidate Key?", opts: ["Any column that contains duplicate values", "All fields in a table that have the attributes of a primary key", "A key that only exists in child tables", "A key generated automatically by the DBA"], ans: 1, exp: "Candidate keys are all fields that qualify as a primary key; one of them is then chosen as the actual primary key." },
+      { q: "According to the notes, what distinguishes a Compound key from a Composite key?", opts: ["A compound key must include a foreign key field; a composite key does not", "A composite key must include a foreign key field; a compound key does not", "There is no difference between them", "A compound key can never form part of a primary key"], ans: 0, exp: "In a compound key, one of the combined fields must be a foreign key — that requirement does not apply to a composite key." },
+      { q: "What does a LEFT OUTER JOIN return?", opts: ["Only matching rows from both tables", "All rows from the right table and matches from the left", "All rows from the left table, plus matching rows from the right table (NULL where unmatched)", "All rows from both tables regardless of matches"], ans: 2, exp: "A LEFT OUTER JOIN preserves every row from the left table, filling in NULL where no match exists on the right." },
+      { q: "If an extra filter condition on an outer join is placed in WHERE instead of ON, what can happen?", opts: ["It has no effect on the result", "It can make the LEFT JOIN behave like an INNER JOIN by removing unmatched rows", "It automatically converts the join to a FULL OUTER JOIN", "It duplicates every matching row"], ans: 1, exp: "A WHERE condition filters the completed result, so rows with NULLs from unmatched records can be removed — this can accidentally undo the outer join's effect." },
+      { q: "What is a Surrogate Key?", opts: ["A key formed by combining two natural fields", "A non-natural key generated by the database administrator to uniquely identify a record", "A key that must always reference another table", "A key that is allowed to contain NULL values"], ans: 1, exp: "A surrogate key is a manually generated, non-natural key (usually an integer) used to uniquely identify each record." },
+      { q: "What is a RIGHT OUTER JOIN's main behaviour?", opts: ["Returns only matching rows", "Returns all rows from the right table plus matches from the left", "Returns all rows from the left table only", "Removes all unmatched rows from both tables"], ans: 1, exp: "A RIGHT OUTER JOIN keeps every row from the right table, with NULLs for the left table where there is no match." },
+      { q: "Why does MySQL traditionally not support a native FULL OUTER JOIN?", opts: ["MySQL does not support joins at all", "Its feature support differs from systems like PostgreSQL and SQL Server, so LEFT/RIGHT JOIN combined with UNION is used instead", "FULL OUTER JOIN is banned in relational databases", "FULL OUTER JOIN was replaced by INNER JOIN"], ans: 1, exp: "MySQL lacks native FULL OUTER JOIN support; the same result must be built using LEFT/RIGHT JOIN combined with UNION." },
+      { q: "What is the effect of using ANY with a subquery that returns multiple rows?", opts: ["It forces the subquery to return only one row", "It compares a value against each value returned by the subquery using a comparison operator", "It automatically sorts the subquery results", "It converts the subquery into a JOIN"], ans: 1, exp: "ANY (like ALL) is used with multiple-row subqueries, comparing a value against the list using operators such as <, > or =." },
+      { q: "According to the notes, what must be true of a single-row subquery used with the '=' operator?", opts: ["It can return multiple rows freely", "It must return exactly one row, or MySQL can report a subquery error", "It must always use the IN operator", "It must never be enclosed in parentheses"], ans: 1, exp: "A single-row subquery must return only one value when compared with a single-value operator like '='." },
+      { q: "What guideline applies to the column count when using SQL set operators like UNION?", opts: ["Each SELECT statement can have a different number of columns", "All SELECT statements must return the same number of columns", "Only the first SELECT statement needs columns", "Set operators do not use SELECT statements"], ans: 1, exp: "Set operators require that all SELECT statements involved return the same number of columns, matched by position." },
+      { q: "What determines the column headings in the final result of a set operation like UNION?", opts: ["The column names from the first SELECT statement", "The column names from the last SELECT statement", "MySQL always renames columns to generic labels", "The user must manually rename every column"], ans: 0, exp: "Column headings in the combined result are normally taken from the first SELECT statement." },
+      { q: "What is the difference between UNIQUE and PRIMARY KEY constraints?", opts: ["They are exactly identical in every respect", "A PRIMARY KEY automatically enforces both UNIQUE and NOT NULL, while a UNIQUE field alone can still be NULL", "UNIQUE enforces NOT NULL but PRIMARY KEY does not", "A table can have many PRIMARY KEYs but only one UNIQUE field"], ans: 1, exp: "PRIMARY KEY automatically enforces both UNIQUE and NOT NULL, whereas a UNIQUE constraint on its own does not require NOT NULL." }
+    ],
+    3: [
+      { q: "What do the four ACID properties of a transaction stand for?", opts: ["Atomicity, Consistency, Isolation, Durability", "Accuracy, Completeness, Integrity, Data", "Atomicity, Concurrency, Integrity, Durability", "Access, Control, Isolation, Data"], ans: 0, exp: "ACID guarantees reliable transactions: Atomicity, Consistency, Isolation, Durability." },
+      { q: "What is the key difference between UNION and UNION ALL?", opts: ["UNION retains duplicates while UNION ALL removes them", "UNION removes duplicate records while UNION ALL retains them", "They perform identical operations", "UNION only works with two tables while UNION ALL needs three or more"], ans: 1, exp: "UNION eliminates duplicate rows from the combined result set, whereas UNION ALL keeps every row, including duplicates." },
+      { q: "What is a subquery, according to the notes?", opts: ["A SELECT statement embedded within another SQL statement", "A separate database used only for backups", "A join that combines more than two tables", "A command used to grant user privileges"], ans: 0, exp: "A subquery (inner query) is a SELECT statement nested inside an outer query, used when one query's result is needed to determine another's." },
+      { q: "What does SAVEPOINT allow a transaction to do?", opts: ["Permanently commit all changes at once", "Create a named point so part of the transaction can be rolled back without undoing everything before it", "Replace the need for COMMIT entirely", "Lock a table from other transactions"], ans: 1, exp: "SAVEPOINT marks a point inside a transaction; ROLLBACK TO SAVEPOINT undoes only the work done after that point." },
+      { q: "How is the ANY operator typically used in SQL?", opts: ["To rename a column temporarily", "To compare a single value against a whole list of values using comparison operators", "To remove duplicate rows from a result", "To permanently delete a table"], ans: 1, exp: ">ANY, <ANY and =ANY compare a single value against a list — for example >ANY means greater than at least one value in the list." },
+      { q: "What does the Isolation property of a transaction ensure?", opts: ["Committed changes are never lost", "Concurrent transactions do not improperly interfere with one another", "A transaction can be undone at any time", "All operations in a transaction use the same data type"], ans: 1, exp: "Isolation ensures that transactions running at the same time do not improperly interfere with each other's results." },
+      { q: "What does the Durability property guarantee?", opts: ["A transaction can always be rolled back", "Once committed, a transaction's changes remain saved even after a system crash", "Data will never contain duplicates", "Every transaction runs instantly"], ans: 1, exp: "Durability means committed changes stay permanently stored even if the system later crashes or loses power." },
+      { q: "Which TCL command starts a transaction explicitly in many DBMSs?", opts: ["BEGIN or START TRANSACTION", "OPEN TRANSACTION", "INIT TRANSACTION", "CREATE TRANSACTION"], ans: 0, exp: "START TRANSACTION (or BEGIN in some systems) explicitly starts a transaction." },
+      { q: "What happens when ROLLBACK is issued before COMMIT in a transaction?", opts: ["The changes are made permanent", "The attempted changes are undone and the database returns to its earlier state", "The transaction pauses indefinitely", "Nothing happens because ROLLBACK requires COMMIT first"], ans: 1, exp: "ROLLBACK cancels uncommitted changes, restoring the database to its state before the transaction began." },
+      { q: "In the bank transfer example, what does a failed second UPDATE (after a successful first UPDATE) demonstrate the need for?", opts: ["A SAVEPOINT to skip the failed step", "Rolling back the whole transaction so the deduction isn't left without a matching deposit, demonstrating atomicity", "Committing only the first update permanently", "Ignoring the error and continuing"], ans: 1, exp: "If the second update fails, rolling back both operations prevents an incomplete transfer — this is atomicity in action." },
+      { q: "What is the purpose of ROLLBACK TO SAVEPOINT?", opts: ["It cancels the entire transaction back to the very start, ignoring any savepoint", "It reverses changes made after a specified savepoint while keeping changes made before it", "It permanently commits everything up to the savepoint", "It creates a brand-new transaction"], ans: 1, exp: "ROLLBACK TO SAVEPOINT undoes only the operations performed after that named point, preserving earlier work in the transaction." },
+      { q: "Which multiple-row subquery operator tests whether a value belongs to a set of values produced by the subquery?", opts: ["IN", "BETWEEN", "LIKE", "IS NULL"], ans: 0, exp: "IN tests whether the outer query's value belongs to the set of values returned by the subquery." }
+    ]
+  };
+
+  const corePractical = {
+    0: [
+      { q: "Using the students_info table (Reg_no, First_name, Surname, Department), write a query to display all first names.", opts: ["SELECT First_name FROM students_info;", "GET First_name FROM students_info;", "SELECT * First_name FROM students_info;", "DISPLAY First_name IN students_info;"], ans: 0, exp: "SELECT column_name FROM table_name; retrieves just the specified column." },
+      { q: "Using the department_students table (department_id, department_name), write a query to list every department name.", opts: ["SELECT department_name FROM department_students;", "SELECT ALL department_students;", "GET department_name IN department_students;", "SHOW department_name FROM department_students;"], ans: 0, exp: "SELECT department_name FROM department_students; retrieves that single column from the table." },
+      { q: "Write a query to display the Reg_no and First_name columns from students_info.", opts: ["SELECT Reg_no, First_name FROM students_info;", "SELECT Reg_no AND First_name FROM students_info;", "GET Reg_no, First_name IN students_info;", "SHOW Reg_no, First_name FROM students_info;"], ans: 0, exp: "Multiple columns are selected by separating them with commas after SELECT." },
+      { q: "Write a query to view the structure of the students_info table (columns, types, keys).", opts: ["DESCRIBE students_info;", "VIEW students_info;", "SHOW STRUCTURE students_info;", "GET students_info;"], ans: 0, exp: "DESCRIBE table_name; displays a table's structure." },
+      { q: "Write a query to insert a new department (11, 'Robotics Club Dept') into department_students.", opts: ["INSERT INTO department_students (department_id, department_name) VALUES (11, 'Robotics Club Dept');", "ADD department_students VALUES (11, 'Robotics Club Dept');", "INSERT department_students SET (11, 'Robotics Club Dept');", "UPDATE department_students VALUES (11, 'Robotics Club Dept');"], ans: 0, exp: "INSERT INTO table (columns) VALUES (values); adds a new record." },
+      { q: "Write a query to permanently delete the entire students_info table, structure and all.", opts: ["DELETE students_info;", "DROP TABLE students_info;", "TRUNCATE students_info;", "REMOVE students_info;"], ans: 1, exp: "DROP TABLE removes both the structure and the content of a table." }
+    ],
+    1: [
+      { q: "Using the equijoin example (students AS s, departments AS d, linked by department_id), write the query to display each student's name with their department name.", opts: ["SELECT s.student_name, d.department_name FROM students AS s JOIN departments AS d ON s.department_id = d.department_id;", "SELECT student_name, department_name FROM students, departments;", "JOIN students AND departments ON department_id;", "SELECT * FROM students UNION departments;"], ans: 0, exp: "The ON clause matches department_id in both tables — this is the equijoin pattern from the notes." },
+      { q: "From students_info, write a query to display the first_name of students whose surname is empty (NULL).", opts: ["SELECT first_name FROM students_info WHERE surname IS NULL;", "SELECT first_name FROM students_info WHERE surname = NULL;", "SELECT first_name FROM students_info WHERE surname = '';", "SELECT first_name FROM students_info WHERE NOT surname;"], ans: 0, exp: "IS NULL tests for missing values; = NULL does not work correctly under SQL's three-valued logic." },
+      { q: "Write a query to count how many students belong to department_id 102 in the students table.", opts: ["SELECT COUNT(*) FROM students WHERE department_id = 102;", "COUNT(students) WHERE department_id = 102;", "SELECT SUM(department_id) FROM students;", "SELECT ALL FROM students WHERE department_id = 102;"], ans: 0, exp: "COUNT(*) combined with WHERE counts the matching rows." },
+      { q: "Give department_students an alias 'd' and select department_name as 'Dept' from it.", opts: ["SELECT department_name AS Dept FROM department_students AS d;", "SELECT department_name = Dept FROM department_students d;", "ALIAS department_students AS d SELECT Dept;", "SELECT d.Dept FROM department_students;"], ans: 0, exp: "AS creates a temporary alias for a column or table, valid only for the duration of that query." },
+      { q: "Write a query to list students_info records where Department is between 1 and 4.", opts: ["SELECT * FROM students_info WHERE Department BETWEEN 1 AND 4;", "SELECT * FROM students_info WHERE Department IN 1 TO 4;", "SELECT * FROM students_info WHERE Department = 1 AND 4;", "SELECT * FROM students_info WHERE Department > 1 < 4;"], ans: 0, exp: "BETWEEN ... AND ... selects values within an inclusive range." },
+      { q: "Write a query to display students whose first_name contains 'CHI' AND are in department 3, from students_info.", opts: ["SELECT first_name FROM students_info WHERE first_name LIKE '%CHI%' AND Department = 3;", "SELECT first_name FROM students_info WHERE first_name LIKE '%CHI%' OR Department = 3;", "SELECT first_name FROM students_info WHERE first_name = 'CHI' AND Department = 3;", "SELECT first_name FROM students_info WHERE NOT first_name LIKE '%CHI%';"], ans: 0, exp: "AND requires both conditions to be true at once, narrowing the result to rows meeting both criteria." }
+    ],
+    2: [
+      { q: "Using the STUDENT and DEPARTMENT tables from the outer join example (linked by DEPT_ID), write a LEFT OUTER JOIN that keeps every student even if their department has no match.", opts: ["SELECT s.STUDENT_ID, s.STUDENT_NAME, d.DEPT_NAME FROM STUDENT AS s LEFT OUTER JOIN DEPARTMENT AS d ON s.DEPT_ID = d.DEPT_ID;", "SELECT s.STUDENT_ID, s.STUDENT_NAME, d.DEPT_NAME FROM STUDENT AS s RIGHT OUTER JOIN DEPARTMENT AS d ON s.DEPT_ID = d.DEPT_ID;", "SELECT s.STUDENT_ID, s.STUDENT_NAME, d.DEPT_NAME FROM STUDENT AS s INNER JOIN DEPARTMENT AS d ON s.DEPT_ID = d.DEPT_ID;", "SELECT s.STUDENT_ID, s.STUDENT_NAME, d.DEPT_NAME FROM STUDENT, DEPARTMENT;"], ans: 0, exp: "LEFT OUTER JOIN preserves all rows from the left table (STUDENT), producing NULL DEPT_NAME for unmatched department IDs." },
+      { q: "Write a query using LIKE to find every first_name in students_info that contains the letters 'CHI' anywhere in the name.", opts: ["SELECT first_name FROM students_info WHERE first_name LIKE '%CHI%';", "SELECT first_name FROM students_info WHERE first_name = 'CHI';", "SELECT first_name FROM students_info WHERE first_name LIKE 'CHI';", "SELECT first_name FROM students_info WHERE first_name IN 'CHI';"], ans: 0, exp: "%CHI% searches for the substring CHI occurring anywhere within the value." },
+      { q: "Write a query to find students in the STUDENT table that have no matching department in DEPARTMENT (unmatched left-table rows).", opts: ["SELECT s.STUDENT_ID, s.STUDENT_NAME FROM STUDENT AS s LEFT JOIN DEPARTMENT AS d ON s.DEPT_ID = d.DEPT_ID WHERE d.DEPT_ID IS NULL;", "SELECT s.STUDENT_ID, s.STUDENT_NAME FROM STUDENT AS s WHERE DEPT_ID IS NULL;", "SELECT s.STUDENT_ID FROM STUDENT s INNER JOIN DEPARTMENT d ON s.DEPT_ID = d.DEPT_ID;", "SELECT * FROM STUDENT WHERE DEPT_ID NOT NULL;"], ans: 0, exp: "A LEFT JOIN combined with WHERE d.DEPT_ID IS NULL isolates left-table rows with no matching right-table record." },
+      { q: "Using Products (ProductName, Price, Category), write a query to increase the price of all 'Robotics' category products by 10000.", opts: ["UPDATE Products SET Price = Price + 10000 WHERE Category = 'Robotics';", "UPDATE Products SET Price = 10000 WHERE Category = 'Robotics';", "ALTER Products SET Price = Price + 10000;", "INSERT Products SET Price = Price + 10000 WHERE Category = 'Robotics';"], ans: 0, exp: "UPDATE ... SET column = column + value WHERE condition; adjusts existing values for matching rows." },
+      { q: "Write a query to display students_info records where Department is NOT 1 (exclude department 1).", opts: ["SELECT * FROM students_info WHERE NOT Department = 1;", "SELECT * FROM students_info WHERE Department = NOT 1;", "SELECT * FROM students_info EXCLUDE Department = 1;", "SELECT * FROM students_info WHERE Department != NULL;"], ans: 0, exp: "The NOT operator negates a condition — here it excludes rows where Department equals 1." },
+      { q: "Since MySQL lacks a native FULL OUTER JOIN, write the approach used to combine a LEFT JOIN and RIGHT JOIN of customers and orders.", opts: ["SELECT ... FROM customers LEFT JOIN orders ON ... UNION SELECT ... FROM customers RIGHT JOIN orders ON ...;", "SELECT ... FROM customers FULL JOIN orders;", "SELECT ... FROM customers, orders;", "SELECT ... FROM customers INNER JOIN orders UNION ALL;"], ans: 0, exp: "Combining a LEFT JOIN and a RIGHT JOIN with UNION reproduces the effect of a FULL OUTER JOIN in MySQL." }
+    ],
+    3: [
+      { q: "Using the Accounts table (AccountNo, Customer, Balance), write a transaction that transfers ₦50,000 from account A001 to account A002 and saves it permanently.", opts: ["START TRANSACTION; UPDATE Accounts SET Balance = Balance - 50000 WHERE AccountNo = 'A001'; UPDATE Accounts SET Balance = Balance + 50000 WHERE AccountNo = 'A002'; COMMIT;", "UPDATE Accounts SET Balance = 50000 WHERE AccountNo = 'A001'; UPDATE Accounts SET Balance = 50000 WHERE AccountNo = 'A002';", "START TRANSACTION; DELETE FROM Accounts WHERE AccountNo = 'A001'; COMMIT;", "ROLLBACK; UPDATE Accounts SET Balance = Balance - 50000 WHERE AccountNo = 'A001';"], ans: 0, exp: "Both updates sit inside START TRANSACTION...COMMIT so they are treated as one atomic unit and permanently saved together." },
+      { q: "Using ComputerStudents and RoboticsStudents (both with a StudentName column), write a query that lists every student name once, with no duplicates.", opts: ["SELECT StudentName FROM ComputerStudents UNION SELECT StudentName FROM RoboticsStudents;", "SELECT StudentName FROM ComputerStudents UNION ALL SELECT StudentName FROM RoboticsStudents;", "SELECT StudentName FROM ComputerStudents, RoboticsStudents;", "SELECT StudentName FROM ComputerStudents JOIN RoboticsStudents;"], ans: 0, exp: "UNION combines the two result sets and removes duplicate rows, unlike UNION ALL which keeps duplicates." },
+      { q: "Using the Accounts table, write the command that permanently saves a transaction's changes.", opts: ["COMMIT;", "SAVE;", "ROLLBACK;", "END TRANSACTION PERMANENT;"], ans: 0, exp: "COMMIT permanently saves the changes made during the current transaction." },
+      { q: "Using the Accounts table, write the command that cancels uncommitted changes in the current transaction.", opts: ["ROLLBACK;", "UNDO;", "CANCEL;", "DROP TRANSACTION;"], ans: 0, exp: "ROLLBACK undoes changes made during the transaction that have not yet been committed." },
+      { q: "Write a query using UNION ALL (not UNION) to combine ComputerStudents and RoboticsStudents, keeping every duplicate name.", opts: ["SELECT StudentName FROM ComputerStudents UNION ALL SELECT StudentName FROM RoboticsStudents;", "SELECT StudentName FROM ComputerStudents UNION SELECT StudentName FROM RoboticsStudents;", "SELECT StudentName FROM ComputerStudents, RoboticsStudents;", "SELECT DISTINCT StudentName FROM ComputerStudents, RoboticsStudents;"], ans: 0, exp: "UNION ALL keeps every row from both SELECT statements, including duplicate names like 'Ada' appearing in both tables." },
+      { q: "Create a SAVEPOINT called midpoint after updating the Accounts balance for A001, then roll back only to that point after a later mistaken update.", opts: ["UPDATE Accounts SET Balance = Balance - 50000 WHERE AccountNo = 'A001'; SAVEPOINT midpoint; UPDATE Accounts SET Balance = Balance + 999999 WHERE AccountNo = 'A002'; ROLLBACK TO SAVEPOINT midpoint;", "SAVEPOINT midpoint; ROLLBACK;", "UPDATE Accounts SET Balance = Balance - 50000; COMMIT; ROLLBACK TO SAVEPOINT midpoint;", "ROLLBACK TO SAVEPOINT midpoint; SAVEPOINT midpoint;"], ans: 0, exp: "SAVEPOINT marks a point after the first update; ROLLBACK TO SAVEPOINT midpoint undoes only the mistaken second update while keeping the first." }
+    ]
+  };
+
+  const qBank = { theory: { 0:[], 1:[], 2:[], 3:[] }, practical: { 0:[], 1:[], 2:[], 3:[] } };
+
+  // Builds a 40-question pool per tier from the unique source questions above.
+  // The full unique set is used first (no repeats within that first pass);
+  // only once every unique question has appeared does the pool start a new
+  // pass, each pass reshuffling the options and lightly relabeling the stem
+  // so a repeated question doesn't look/feel identical to its earlier showing.
+  function buildBank(source, dest, type) {
+    const passLabel = (q, passNum, kind) => {
+      if (passNum === 0) return q;
+      const theoryTags = [' — check this again?', ' (revisited)?', ' — one more time?'];
+      const practicalTags = [' [Practice variant]', ' [Re-attempt]', ' [Second look]'];
+      const tags = kind === 'theory' ? theoryTags : practicalTags;
+      const tag = tags[(passNum - 1) % tags.length];
+      if (kind === 'theory' && q.trim().endsWith('?')) {
+        return q.slice(0, -1) + tag;
+      }
+      return q + tag;
+    };
+
+    for (let tier = 0; tier <= 3; tier++) {
+      const src = source[tier];
+      const pool = [];
+      let idx = 0;
+      let passNum = 0;
+
+      while (pool.length < 40) {
+        if (idx >= src.length) { idx = 0; passNum++; }
+        const original = src[idx];
+        const correctStr = original.opts[original.ans];
+        const newOpts = shuffle([...original.opts]);
+
+        pool.push({
+          q: passLabel(original.q, passNum, type),
+          opts: newOpts,
+          ans: newOpts.indexOf(correctStr),
+          exp: original.exp
+        });
+
+        idx++;
+      }
+      dest[tier] = pool;
+    }
+  }
+
+  buildBank(coreTheory, qBank.theory, 'theory');
+  buildBank(corePractical, qBank.practical, 'practical');
+
+
+  // --- APP STATE ---
+  let appMode = 'theory';
+  let currentQuestions = [];
+  let currentIndex = 0;
+  let score = 0;
+  let streak = 0;
+
+  // --- DOM ELEMENTS ---
+  const els = {
+    mainTitle: document.getElementById('mainTitle'),
+    startScreen: document.getElementById('startScreen'),
+    quizCard: document.getElementById('quizCard'),
+    progressRow: document.getElementById('progressRow'),
+    progressTrack: document.getElementById('progressTrack'),
+    progFill: document.getElementById('progFill'),
+    dbViewer: document.getElementById('dbViewer'),
+    qcounter: document.getElementById('qcounter'),
+    scoretag: document.getElementById('scoretag'),
+    qidNum: document.getElementById('qidNum'),
+    qBadge: document.getElementById('qBadge'),
+    qtext: document.getElementById('qtext'),
+    options: document.getElementById('options'),
+    explain: document.getElementById('explain'),
+    streakNum: document.getElementById('streakNum'),
+    nextBtn: document.getElementById('nextBtn'),
+    backBtn: document.getElementById('backBtn'),
+    tabTheory: document.getElementById('tabTheory'),
+    tabPractical: document.getElementById('tabPractical')
+  };
+
+  // --- ROUTING ---
+  els.tabTheory.addEventListener('click', () => switchTab('theory'));
+  els.tabPractical.addEventListener('click', () => switchTab('practical'));
+  els.backBtn.addEventListener('click', resetToMenu);
+
+  document.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => startQuiz(e.currentTarget.dataset.mode));
+  });
+
+  els.nextBtn.addEventListener('click', loadNextQuestion);
+
+  function switchTab(mode) {
+    appMode = mode;
+    els.tabTheory.classList.toggle('active', mode === 'theory');
+    els.tabPractical.classList.toggle('active', mode === 'practical');
+    els.mainTitle.innerHTML = mode === 'theory' ? 'THEORY <span>DRILL</span>' : 'PRACTICAL <span>DRILL</span>';
+  }
+
+  function resetToMenu() {
+    els.startScreen.classList.remove('hidden');
+    els.progressRow.classList.add('hidden');
+    els.progressTrack.classList.add('hidden');
+    els.quizCard.classList.add('hidden');
+    els.dbViewer.classList.remove('show');
+  }
+
+  function startQuiz(difficulty) {
+    els.startScreen.classList.add('hidden');
+    els.progressRow.classList.remove('hidden');
+    els.progressTrack.classList.remove('hidden');
+    els.quizCard.classList.remove('hidden');
+
+    els.dbViewer.classList.toggle('show', appMode === 'practical');
+
+    currentQuestions = buildQuestionSet(difficulty, appMode);
+    currentIndex = 0;
+    score = 0;
+    streak = 0;
+
+    updateBumper(difficulty);
+    renderQuestion();
+  }
+
+  function buildQuestionSet(diff, mode) {
+    const bank = mode === 'theory' ? qBank.theory : qBank.practical;
+
+    if (diff === 'mixed') {
+      const targetCount = Math.floor(Math.random() * (100 - 30 + 1)) + 30;
+      let pool = [];
+      for(let i=0; i<=3; i++) pool = pool.concat(bank[i]);
+      pool = shuffle(pool).slice(0, targetCount);
+      return pool;
+    }
+
+    return shuffle([...bank[diff]]);
+  }
+
+  function renderQuestion() {
+    if (currentIndex >= currentQuestions.length) return finishQuiz();
+
+    const q = currentQuestions[currentIndex];
+    const total = currentQuestions.length;
+
+    els.options.innerHTML = '';
+    els.explain.classList.remove('show');
+    els.nextBtn.disabled = true;
+
+    els.qcounter.innerText = `Question ${currentIndex + 1} / ${total}`;
+    els.scoretag.innerText = `SCORE ${score}`;
+    els.streakNum.innerText = streak;
+    els.progFill.style.width = `${((currentIndex) / total) * 100}%`;
+
+    els.qidNum.innerText = `Q${String(currentIndex + 1).padStart(2, '0')}`;
+    determineDifficultyBadge(q, appMode);
+
+    els.qtext.innerText = q.q;
+
+    const letters = ['A', 'B', 'C', 'D'];
+    q.opts.forEach((optText, idx) => {
+      const btn = document.createElement('button');
+      btn.className = 'opt';
+      btn.innerHTML = `<span class="k">${letters[idx]}</span> <span>${optText}</span>`;
+      btn.onclick = () => handleAnswer(btn, idx, q.ans, q.exp);
+      els.options.appendChild(btn);
+    });
+  }
+
+  function handleAnswer(btn, selectedIdx, correctIdx, explanation) {
+    if (!els.nextBtn.disabled) return;
+
+    const allOpts = els.options.children;
+    for (let i = 0; i < allOpts.length; i++) {
+      allOpts[i].classList.add('locked');
+      if (i === correctIdx) allOpts[i].classList.add('correct');
+      else if (i === selectedIdx) allOpts[i].classList.add('wrong');
+      else allOpts[i].classList.add('dim');
+    }
+
+    if (selectedIdx === correctIdx) {
+      score += 100 + (streak * 10);
+      streak++;
+    } else {
+      streak = 0;
+    }
+
+    els.scoretag.innerText = `SCORE ${score}`;
+    els.streakNum.innerText = streak;
+
+    els.explain.innerHTML = `<strong>Explanation:</strong> ${explanation}`;
+    els.explain.classList.add('show');
+    els.nextBtn.disabled = false;
+  }
+
+  function loadNextQuestion() {
+    currentIndex++;
+    renderQuestion();
+  }
+
+  function finishQuiz() {
+    els.progFill.style.width = '100%';
+    els.qtext.innerText = "Drill Complete!";
+    els.options.innerHTML = `<div class="opt correct" style="justify-content:center; padding:24px;">
+      <h2>Final Score: ${score}</h2>
+    </div>`;
+    els.dbViewer.classList.remove('show');
+    els.explain.classList.remove('show');
+    els.nextBtn.innerText = "Back to Menu";
+    els.nextBtn.onclick = resetToMenu;
+    els.nextBtn.disabled = false;
+  }
+
+  function shuffle(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+  }
+
+  function determineDifficultyBadge(q, mode) {
+    let tier = 0;
+    const bank = mode === 'theory' ? qBank.theory : qBank.practical;
+    for (let i = 0; i <= 3; i++) {
+      if (bank[i].includes(q)) tier = i;
+    }
+
+    const colors = [
+      { text: 'EASY', bg: 'var(--teal-dim)', c: 'var(--teal)' },
+      { text: 'MEDIUM', bg: 'var(--amber-dim)', c: 'var(--amber)' },
+      { text: 'HARD', bg: 'var(--red-dim)', c: 'var(--red)' },
+      { text: 'EXPERT', bg: 'var(--violet-dim)', c: 'var(--violet)' }
+    ];
+
+    els.qBadge.innerText = (mode === 'practical' ? 'PRAC ' : '') + colors[tier].text;
+    els.qBadge.style.background = colors[tier].bg;
+    els.qBadge.style.color = colors[tier].c;
+  }
+
+  function updateBumper(diff) {
+    document.querySelectorAll('.tier').forEach(t => t.classList.remove('active'));
+    const tElement = document.querySelector(`.tier[data-t="${diff}"]`);
+    if (tElement) tElement.classList.add('active');
+  }
+</script>
+</body>
+</html>
