@@ -211,7 +211,7 @@
 
     <div id="theoryMenu">
       <p class="qtext" style="margin-bottom:8px;">Choose your drill mode</p>
-      <p class="sub" style="margin:0 0 24px;">Progressive mixed runs 30-100 random questions scaling in difficulty. Single tiers target a 40-question bank per difficulty.</p>
+      <p class="sub" style="margin:0 0 24px;">Progressive mixed runs random questions scaling in difficulty. Single tiers target a specific difficulty bank.</p>
       <div class="options">
         <button type="button" class="opt" data-mode="mixed">
           <span class="k">⚡</span><span><strong>PROGRESSIVE MIXED</strong> <br><small style="color:var(--muted)">30 - 100 Random Questions</small></span>
@@ -258,7 +258,6 @@
         <h3>3. Accounts</h3>
         <table class="db"><tr><th>AccountNo</th><th>Customer</th><th>Balance</th></tr><tr><td>A001</td><td>Ada</td><td>₦200,000</td></tr><tr><td>A002</td><td>John</td><td>₦100,000</td></tr><tr><td>A003</td><td>Grace</td><td>₦150,000</td></tr></table>
       </div>
-      <!-- Remaining 7 tables will be populated via JS for brevity -->
     </div>
 
     <p class="qtext" id="qtext"></p>
@@ -270,5 +269,247 @@
     </div>
   </div>
 </div>
+
+<script>
+  // --- QUESTION BANK ---
+  const qBank = {
+    theory: {
+      0: [ // Easy
+        { q: "What does SQL stand for?", opts: ["Structured Query Language", "Strong Question Language", "Structured Question Logic", "Standard Query Language"], ans: 0, exp: "SQL stands for Structured Query Language, the standard language for relational database management." },
+        { q: "Which SQL statement is used to extract data from a database?", opts: ["EXTRACT", "SELECT", "GET", "OPEN"], ans: 1, exp: "SELECT is used to retrieve data from a database." },
+        { q: "Which SQL statement is used to update data in a database?", opts: ["SAVE", "MODIFY", "UPDATE", "SAVE AS"], ans: 2, exp: "The UPDATE statement is used to modify existing records in a table." }
+        // Populate additional Easy questions here to reach 40
+      ],
+      1: [ // Medium
+        { q: "What is the primary purpose of a PRIMARY KEY?", opts: ["To encrypt data", "To uniquely identify each record in a table", "To connect to external databases", "To sort data automatically"], ans: 1, exp: "A PRIMARY KEY uniquely identifies each record and ensures no duplicate or null values exist in that column." },
+        { q: "Which operator is used to search for a specified pattern in a column?", opts: ["GET", "LIKE", "MATCH", "PATTERN"], ans: 1, exp: "The LIKE operator is used in a WHERE clause to search for a specified pattern in a column." }
+        // Populate additional Medium questions here to reach 40
+      ],
+      2: [ // Hard
+        { q: "What is a Foreign Key?", opts: ["A key used to access a database remotely", "A field that links to the primary key of another table", "A unique identifier for temporary tables", "An encryption key for securing data"], ans: 1, exp: "A Foreign Key is a field (or collection of fields) in one table that refers to the Primary Key in another table." },
+        { q: "What is the difference between TRUNCATE and DELETE?", opts: ["TRUNCATE logs individual row deletions; DELETE does not.", "DELETE removes the table structure; TRUNCATE does not.", "TRUNCATE removes all rows without logging individual deletions; DELETE logs each row.", "There is no difference."], ans: 2, exp: "TRUNCATE is a DDL command that quickly removes all rows without logging individual row deletions, whereas DELETE is a DML command." }
+        // Populate additional Hard questions here to reach 40
+      ],
+      3: [ // Expert
+        { q: "Which normal form resolves transitive dependencies?", opts: ["First Normal Form (1NF)", "Second Normal Form (2NF)", "Third Normal Form (3NF)", "Boyce-Codd Normal Form (BCNF)"], ans: 2, exp: "Third Normal Form (3NF) requires that all attributes are functionally dependent only on the primary key, eliminating transitive dependencies." },
+        { q: "What characterizes an ACID-compliant transaction?", opts: ["Atomicity, Consistency, Isolation, Durability", "Accuracy, Completeness, Isolation, Data", "Atomicity, Concurrency, Integrity, Durability", "Allocation, Consistency, Integration, Database"], ans: 0, exp: "ACID stands for Atomicity, Consistency, Isolation, and Durability, which are the key properties of a reliable database transaction." }
+        // Populate additional Expert questions here to reach 40
+      ]
+    },
+    practical: [
+      { q: "Write a query to retrieve all Female students from the 'students' table.", opts: ["SELECT * FROM students WHERE gender = 'Female';", "SELECT Female FROM students;", "GET students WHERE gender = Female;", "FETCH * FROM students WHERE gender == 'Female';"], ans: 0, exp: "String literals must be enclosed in single quotes, and a single '=' is used for equality in SQL." },
+      { q: "How would you join 'students' and 'departments' to show student names and their department names?", opts: ["SELECT student_name, department_name FROM students JOIN departments ON students.department_id = departments.department_id;", "SELECT * FROM students, departments;", "JOIN students AND departments WHERE department_id MATCHES;", "SELECT student_name, department_name FROM students UNION departments;"], ans: 0, exp: "An INNER JOIN matches records from both tables based on the shared department_id." }
+      // Populate additional Practical questions here
+    ]
+  };
+
+  // --- APP STATE ---
+  let currentQuestions = [];
+  let currentIndex = 0;
+  let score = 0;
+  let streak = 0;
+  let isPractical = false;
+
+  // --- DOM ELEMENTS ---
+  const els = {
+    startScreen: document.getElementById('startScreen'),
+    quizCard: document.getElementById('quizCard'),
+    progressRow: document.getElementById('progressRow'),
+    progressTrack: document.getElementById('progressTrack'),
+    progFill: document.getElementById('progFill'),
+    theoryMenu: document.getElementById('theoryMenu'),
+    dbViewer: document.getElementById('dbViewer'),
+    qcounter: document.getElementById('qcounter'),
+    scoretag: document.getElementById('scoretag'),
+    qidNum: document.getElementById('qidNum'),
+    qBadge: document.getElementById('qBadge'),
+    qtext: document.getElementById('qtext'),
+    options: document.getElementById('options'),
+    explain: document.getElementById('explain'),
+    streakNum: document.getElementById('streakNum'),
+    nextBtn: document.getElementById('nextBtn'),
+    tabTheory: document.getElementById('tabTheory'),
+    tabPractical: document.getElementById('tabPractical')
+  };
+
+  // --- INITIALIZATION & ROUTING ---
+  els.tabTheory.addEventListener('click', () => switchTab(false));
+  els.tabPractical.addEventListener('click', () => { switchTab(true); startQuiz('practical'); });
+
+  document.querySelectorAll('.opt[data-mode]').forEach(btn => {
+    btn.addEventListener('click', (e) => startQuiz(e.currentTarget.dataset.mode));
+  });
+
+  els.nextBtn.addEventListener('click', loadNextQuestion);
+
+  function switchTab(toPractical) {
+    els.tabTheory.classList.toggle('active', !toPractical);
+    els.tabPractical.classList.toggle('active', toPractical);
+    els.theoryMenu.style.display = toPractical ? 'none' : 'block';
+  }
+
+  // --- CORE LOGIC ---
+  function startQuiz(mode) {
+    isPractical = (mode === 'practical');
+    els.startScreen.classList.add('hidden');
+    els.progressRow.classList.remove('hidden');
+    els.progressTrack.classList.remove('hidden');
+    els.quizCard.classList.remove('hidden');
+    
+    currentQuestions = buildQuestionSet(mode);
+    currentIndex = 0;
+    score = 0;
+    streak = 0;
+    
+    updateBumper(mode);
+    renderQuestion();
+  }
+
+  function buildQuestionSet(mode) {
+    if (mode === 'practical') return shuffle([...qBank.practical]);
+    
+    if (mode === 'mixed') {
+      let pool = [];
+      pool = pool.concat(shuffle([...qBank.theory[0]]).slice(0, 10)); // Up to 10 Easy
+      pool = pool.concat(shuffle([...qBank.theory[1]]).slice(0, 10)); // Up to 10 Medium
+      pool = pool.concat(shuffle([...qBank.theory[2]]).slice(0, 10)); // Up to 10 Hard
+      pool = pool.concat(shuffle([...qBank.theory[3]]).slice(0, 5));  // Up to 5 Expert
+      return pool;
+    }
+    
+    // Single Tier
+    return shuffle([...qBank.theory[mode]]);
+  }
+
+  function renderQuestion() {
+    if (currentIndex >= currentQuestions.length) return finishQuiz();
+
+    const q = currentQuestions[currentIndex];
+    const total = currentQuestions.length;
+    
+    // Reset UI
+    els.options.innerHTML = '';
+    els.explain.classList.remove('show');
+    els.nextBtn.disabled = true;
+    
+    // Progress updates
+    els.qcounter.innerText = `Question ${currentIndex + 1} / ${total}`;
+    els.scoretag.innerText = `SCORE ${score}`;
+    els.streakNum.innerText = streak;
+    els.progFill.style.width = `${((currentIndex) / total) * 100}%`;
+    
+    // Question Meta
+    els.qidNum.innerText = `Q${String(currentIndex + 1).padStart(2, '0')}`;
+    
+    if (isPractical) {
+      els.qBadge.innerText = 'PRACTICAL';
+      els.qBadge.style.background = 'var(--teal-dim)';
+      els.qBadge.style.color = 'var(--teal)';
+      els.dbViewer.classList.add('show');
+    } else {
+      els.dbViewer.classList.remove('show');
+      determineDifficultyBadge(q);
+    }
+    
+    els.qtext.innerText = q.q;
+
+    // Render Options
+    const letters = ['A', 'B', 'C', 'D'];
+    q.opts.forEach((optText, idx) => {
+      const btn = document.createElement('button');
+      btn.className = 'opt';
+      btn.innerHTML = `<span class="k">${letters[idx]}</span> <span>${optText}</span>`;
+      btn.onclick = () => handleAnswer(btn, idx, q.ans, q.exp);
+      els.options.appendChild(btn);
+    });
+  }
+
+  function handleAnswer(btn, selectedIdx, correctIdx, explanation) {
+    if (!els.nextBtn.disabled) return; // Prevent multiple clicks
+
+    const allOpts = els.options.children;
+    for (let i = 0; i < allOpts.length; i++) {
+      allOpts[i].classList.add('locked');
+      if (i === correctIdx) allOpts[i].classList.add('correct');
+      else if (i === selectedIdx) allOpts[i].classList.add('wrong');
+      else allOpts[i].classList.add('dim');
+    }
+
+    if (selectedIdx === correctIdx) {
+      score += 100 + (streak * 10);
+      streak++;
+    } else {
+      streak = 0;
+    }
+
+    els.scoretag.innerText = `SCORE ${score}`;
+    els.streakNum.innerText = streak;
+    
+    els.explain.innerHTML = `<strong>Explanation:</strong> ${explanation}`;
+    els.explain.classList.add('show');
+    els.nextBtn.disabled = false;
+  }
+
+  function loadNextQuestion() {
+    currentIndex++;
+    renderQuestion();
+  }
+
+  function finishQuiz() {
+    els.progFill.style.width = '100%';
+    els.qtext.innerText = "Drill Complete!";
+    els.options.innerHTML = `<div class="opt correct" style="justify-content:center; padding:24px;">
+      <h2>Final Score: ${score}</h2>
+    </div>`;
+    els.dbViewer.classList.remove('show');
+    els.explain.classList.remove('show');
+    els.nextBtn.innerText = "Return Home";
+    els.nextBtn.onclick = () => location.reload();
+    els.nextBtn.disabled = false;
+  }
+
+  // --- UTILS ---
+  function shuffle(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+  }
+
+  function determineDifficultyBadge(q) {
+    let tier = 0;
+    for (let i = 0; i <= 3; i++) {
+      if (qBank.theory[i].includes(q)) tier = i;
+    }
+    
+    const colors = [
+      { text: 'EASY', bg: 'var(--teal-dim)', c: 'var(--teal)' },
+      { text: 'MEDIUM', bg: 'var(--amber-dim)', c: 'var(--amber)' },
+      { text: 'HARD', bg: 'var(--red-dim)', c: 'var(--red)' },
+      { text: 'EXPERT', bg: 'var(--violet-dim)', c: 'var(--violet)' }
+    ];
+    
+    els.qBadge.innerText = colors[tier].text;
+    els.qBadge.style.background = colors[tier].bg;
+    els.qBadge.style.color = colors[tier].c;
+  }
+
+  function updateBumper(mode) {
+    document.querySelectorAll('.tier').forEach(t => {
+      t.classList.remove('active');
+      t.classList.add('done');
+    });
+    if (mode === 'mixed' || mode === 'practical') {
+      document.querySelectorAll('.tier').forEach(t => t.classList.remove('done'));
+    } else {
+      const tElement = document.querySelector(`.tier[data-t="${mode}"]`);
+      if (tElement) {
+        tElement.classList.remove('done');
+        tElement.classList.add('active');
+      }
+    }
+  }
+</script>
 </body>
 </html>
