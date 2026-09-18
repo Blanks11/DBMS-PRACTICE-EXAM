@@ -38,7 +38,7 @@
     line-height: 1.6;
   }
   .mono { font-family: 'SFMono-Regular', Consolas, monospace; }
-  .wrap { width: 100%; max-width: 900px; }
+  .wrap { width: 100%; max-width: 900px; display: flex; flex-direction: column; }
 
   /* Animations */
   @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -63,9 +63,9 @@
   .sub { color: var(--muted); font-size: 15px; margin: 0; }
 
   /* Difficulty bumper */
-  .bumper { display: flex; gap: 8px; margin-top: 24px; }
+  .bumper { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
   .tier {
-    flex: 1; padding: 10px 8px; border-radius: 8px; text-align: center;
+    flex: 1 1 15%; padding: 10px 8px; border-radius: 8px; text-align: center;
     font-size: 12px; font-weight: 700; letter-spacing: .05em; 
     color: var(--muted); background: var(--panel-2); border: 1px solid var(--border-soft);
   }
@@ -103,13 +103,13 @@
     border-top: none; padding: 12px 32px 36px;
     border-radius: 0 0 12px 12px; box-shadow: var(--shadow);
   }
-  .qid { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .qid { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
   .qid-left { display: flex; align-items: center; gap: 12px; font-size: 13px; font-weight: 600; color: var(--muted); }
   .badge { padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 11px; }
   
   .btn-back {
     background: var(--panel-2); border: 1px solid var(--border); color: var(--muted);
-    padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;
+    padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;
   }
   .btn-back:hover { background: var(--border-soft); color: var(--text); }
 
@@ -119,7 +119,7 @@
   .opt {
     text-align: left; padding: 16px 20px; border-radius: 10px;
     background: var(--panel); border: 2px solid var(--border-soft); color: var(--text);
-    font-size: 15px; font-weight: 500; cursor: pointer; display: flex; gap: 16px;
+    font-size: 15px; font-weight: 500; cursor: pointer; display: flex; gap: 16px; align-items: center;
   }
   .opt:hover:not(.locked) { border-color: var(--teal); background: var(--panel-2); }
   .opt .k { font-size: 13px; font-weight: 700; color: var(--muted); width: 24px; flex-shrink: 0; }
@@ -136,21 +136,57 @@
   .streak b { color: var(--amber); font-size: 15px; }
   
   .btn-primary {
-    background: var(--teal); color: white; border: none; padding: 12px 28px;
+    background: var(--teal); color: white; border: none; padding: 14px 28px;
     border-radius: 8px; font-weight: 600; font-size: 15px; cursor: pointer;
   }
   .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
   /* 10 DB Tables */
-  .db-viewer { display: none; margin-bottom: 24px; padding: 16px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; max-height: 350px; overflow-y: auto; }
+  .db-viewer { display: none; margin-bottom: 24px; padding: 16px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; max-height: 400px; overflow-y: auto; }
   .db-viewer.show { display: block; }
-  .db-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .db-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; }
   .db-table-wrapper h3 { font-size: 13px; margin: 0 0 6px; color: var(--teal); }
-  table.db { width: 100%; border-collapse: collapse; font-size: 11px; background: white; }
-  table.db th, table.db td { border: 1px solid var(--border); padding: 4px 8px; text-align: left; }
+  .table-scroll { overflow-x: auto; }
+  table.db { width: 100%; border-collapse: collapse; font-size: 11px; background: white; white-space: nowrap; }
+  table.db th, table.db td { border: 1px solid var(--border); padding: 6px 8px; text-align: left; }
   table.db th { background: var(--row-alt); font-weight: 600; }
   
   .hidden { display: none !important; }
+
+  /* --- RESPONSIVE MEDIA QUERIES --- */
+  
+  /* Tablet Adjustments */
+  @media (max-width: 900px) {
+    .db-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  /* Mobile Adjustments (Android & iOS) */
+  @media (max-width: 600px) {
+    body { padding: 12px 8px 30px; }
+    h1 { font-size: 24px; }
+    .titlebar { padding: 20px 16px 16px; }
+    .card { padding: 12px 16px 24px; }
+    .progress-row { padding: 16px 16px 0; }
+    .progress-track { margin: 12px 16px 20px; }
+    
+    .bumper { gap: 6px; }
+    .tier { flex: 1 1 30%; font-size: 11px; padding: 8px 4px; }
+    
+    .nav-tabs { flex-direction: column; gap: 8px; margin-bottom: 16px; }
+    .tab-btn { padding: 12px; font-size: 14px; }
+    
+    .db-grid { grid-template-columns: 1fr; }
+    .db-viewer { max-height: 300px; padding: 12px; }
+    
+    .qid { flex-direction: column; align-items: flex-start; }
+    .btn-back { width: 100%; text-align: center; padding: 10px; margin-top: 4px; }
+    
+    .qtext { font-size: 17px; }
+    .opt { padding: 12px 16px; font-size: 14px; }
+    
+    .footer-row { flex-direction: column; gap: 16px; align-items: stretch; text-align: center; }
+    .btn-primary { width: 100%; }
+  }
 </style>
 </head>
 <body>
@@ -217,48 +253,68 @@
       <button class="btn-back" id="backBtn">← Back to Menu</button>
     </div>
 
-    <!-- 10 Tables Viewer -->
+    <!-- 10 Tables Viewer with internal scrolling for mobile -->
     <div class="db-viewer mono" id="dbViewer">
       <div class="db-grid">
         <div class="db-table-wrapper">
           <h3>1. Students</h3>
-          <table class="db"><tr><th>s_id</th><th>name</th><th>major_id</th><th>dorm_id</th></tr><tr><td>1</td><td>Ada</td><td>10</td><td>D1</td></tr><tr><td>2</td><td>Obi</td><td>11</td><td>D2</td></tr></table>
+          <div class="table-scroll">
+            <table class="db"><tr><th>s_id</th><th>name</th><th>major_id</th><th>dorm_id</th></tr><tr><td>1</td><td>Ada</td><td>10</td><td>D1</td></tr><tr><td>2</td><td>Obi</td><td>11</td><td>D2</td></tr></table>
+          </div>
         </div>
         <div class="db-table-wrapper">
           <h3>2. Departments</h3>
-          <table class="db"><tr><th>d_id</th><th>d_name</th><th>building</th></tr><tr><td>10</td><td>Computer Sci</td><td>Block A</td></tr><tr><td>11</td><td>Robotics</td><td>Block B</td></tr></table>
+          <div class="table-scroll">
+            <table class="db"><tr><th>d_id</th><th>d_name</th><th>building</th></tr><tr><td>10</td><td>Computer Sci</td><td>Block A</td></tr><tr><td>11</td><td>Robotics</td><td>Block B</td></tr></table>
+          </div>
         </div>
         <div class="db-table-wrapper">
           <h3>3. Courses</h3>
-          <table class="db"><tr><th>c_id</th><th>title</th><th>credits</th></tr><tr><td>C1</td><td>Database 1</td><td>3</td></tr><tr><td>C2</td><td>AI Logic</td><td>4</td></tr></table>
+          <div class="table-scroll">
+            <table class="db"><tr><th>c_id</th><th>title</th><th>credits</th></tr><tr><td>C1</td><td>Database 1</td><td>3</td></tr><tr><td>C2</td><td>AI Logic</td><td>4</td></tr></table>
+          </div>
         </div>
         <div class="db-table-wrapper">
           <h3>4. Enrollments</h3>
-          <table class="db"><tr><th>s_id</th><th>c_id</th><th>semester</th></tr><tr><td>1</td><td>C1</td><td>Fall</td></tr><tr><td>2</td><td>C1</td><td>Fall</td></tr></table>
+          <div class="table-scroll">
+            <table class="db"><tr><th>s_id</th><th>c_id</th><th>semester</th></tr><tr><td>1</td><td>C1</td><td>Fall</td></tr><tr><td>2</td><td>C1</td><td>Fall</td></tr></table>
+          </div>
         </div>
         <div class="db-table-wrapper">
           <h3>5. Professors</h3>
-          <table class="db"><tr><th>p_id</th><th>name</th><th>d_id</th></tr><tr><td>P1</td><td>Dr. Eze</td><td>10</td></tr><tr><td>P2</td><td>Prof. Okafor</td><td>11</td></tr></table>
+          <div class="table-scroll">
+            <table class="db"><tr><th>p_id</th><th>name</th><th>d_id</th></tr><tr><td>P1</td><td>Dr. Eze</td><td>10</td></tr><tr><td>P2</td><td>Prof. Okafor</td><td>11</td></tr></table>
+          </div>
         </div>
         <div class="db-table-wrapper">
           <h3>6. Grades</h3>
-          <table class="db"><tr><th>s_id</th><th>c_id</th><th>grade</th></tr><tr><td>1</td><td>C1</td><td>A</td></tr><tr><td>2</td><td>C1</td><td>B</td></tr></table>
+          <div class="table-scroll">
+            <table class="db"><tr><th>s_id</th><th>c_id</th><th>grade</th></tr><tr><td>1</td><td>C1</td><td>A</td></tr><tr><td>2</td><td>C1</td><td>B</td></tr></table>
+          </div>
         </div>
         <div class="db-table-wrapper">
           <h3>7. Library</h3>
-          <table class="db"><tr><th>book_id</th><th>title</th><th>copies</th></tr><tr><td>B1</td><td>SQL Primer</td><td>5</td></tr><tr><td>B2</td><td>Data Mining</td><td>2</td></tr></table>
+          <div class="table-scroll">
+            <table class="db"><tr><th>book_id</th><th>title</th><th>copies</th></tr><tr><td>B1</td><td>SQL Primer</td><td>5</td></tr><tr><td>B2</td><td>Data Mining</td><td>2</td></tr></table>
+          </div>
         </div>
         <div class="db-table-wrapper">
           <h3>8. Loans</h3>
-          <table class="db"><tr><th>s_id</th><th>book_id</th><th>due_date</th></tr><tr><td>1</td><td>B1</td><td>Oct 12</td></tr><tr><td>2</td><td>B2</td><td>Oct 15</td></tr></table>
+          <div class="table-scroll">
+            <table class="db"><tr><th>s_id</th><th>book_id</th><th>due_date</th></tr><tr><td>1</td><td>B1</td><td>Oct 12</td></tr><tr><td>2</td><td>B2</td><td>Oct 15</td></tr></table>
+          </div>
         </div>
         <div class="db-table-wrapper">
           <h3>9. Dorms</h3>
-          <table class="db"><tr><th>dorm_id</th><th>d_name</th><th>capacity</th></tr><tr><td>D1</td><td>Zik Hall</td><td>500</td></tr><tr><td>D2</td><td>Mbanefo</td><td>450</td></tr></table>
+          <div class="table-scroll">
+            <table class="db"><tr><th>dorm_id</th><th>d_name</th><th>capacity</th></tr><tr><td>D1</td><td>Zik Hall</td><td>500</td></tr><tr><td>D2</td><td>Mbanefo</td><td>450</td></tr></table>
+          </div>
         </div>
         <div class="db-table-wrapper">
           <h3>10. Clubs</h3>
-          <table class="db"><tr><th>club_id</th><th>c_name</th><th>president_id</th></tr><tr><td>CL1</td><td>Robotics Club</td><td>2</td></tr><tr><td>CL2</td><td>Data Society</td><td>1</td></tr></table>
+          <div class="table-scroll">
+            <table class="db"><tr><th>club_id</th><th>c_name</th><th>president_id</th></tr><tr><td>CL1</td><td>Robotics Club</td><td>2</td></tr><tr><td>CL2</td><td>Data Society</td><td>1</td></tr></table>
+          </div>
         </div>
       </div>
     </div>
@@ -275,32 +331,29 @@
 
 <script>
   // --- QUESTION BANK GENERATOR ---
-  // To ensure exactly 40 unique questions per tier without massive bloat, 
-  // we define core templates and auto-expand them into 40 distinct variations.
-
   const coreTheory = {
-    0: [ // Easy
+    0: [ 
       { q: "What does SQL stand for?", opts: ["Structured Query Language", "Strong Question Language", "Structured Question Logic", "Standard Query Language"], ans: 0, exp: "SQL is Structured Query Language." },
       { q: "Which SQL statement is used to extract data?", opts: ["EXTRACT", "SELECT", "GET", "OPEN"], ans: 1, exp: "SELECT retrieves data." },
       { q: "Which SQL statement updates data?", opts: ["SAVE", "MODIFY", "UPDATE", "CHANGE"], ans: 2, exp: "UPDATE modifies existing records." },
       { q: "Which statement deletes a table entirely?", opts: ["REMOVE TABLE", "DROP TABLE", "DELETE TABLE", "TRUNCATE TABLE"], ans: 1, exp: "DROP TABLE removes the structure and data." },
       { q: "How do you select all columns from a table?", opts: ["SELECT ALL FROM", "SELECT * FROM", "GET * FROM", "SELECT [all] FROM"], ans: 1, exp: "The asterisk (*) denotes all columns." }
     ],
-    1: [ // Medium
+    1: [ 
       { q: "What is a PRIMARY KEY?", opts: ["Encrypts data", "Uniquely identifies each record", "Links external databases", "Sorts data"], ans: 1, exp: "Ensures no duplicate or null values." },
       { q: "Which operator searches for a specified pattern?", opts: ["GET", "LIKE", "MATCH", "PATTERN"], ans: 1, exp: "LIKE is used in a WHERE clause for pattern matching." },
       { q: "What does the COUNT() function return?", opts: ["Sum of values", "Number of rows matching a criteria", "Average of a column", "Highest value"], ans: 1, exp: "COUNT() returns the number of rows." },
       { q: "How do you sort results in descending order?", opts: ["SORT DESC", "ORDER BY DESC", "ORDER BY column_name DESC", "DESCEND column_name"], ans: 2, exp: "ORDER BY followed by the column and DESC." },
       { q: "What is the purpose of the DISTINCT keyword?", opts: ["Return only unique values", "Delete duplicate rows", "Highlight different columns", "Join tables"], ans: 0, exp: "SELECT DISTINCT returns only distinct (different) values." }
     ],
-    2: [ // Hard
+    2: [ 
       { q: "What is a Foreign Key?", opts: ["Remote DB key", "Links to the primary key of another table", "Temporary table ID", "Encryption key"], ans: 1, exp: "Enforces referential integrity between tables." },
       { q: "Difference between TRUNCATE and DELETE?", opts: ["TRUNCATE logs rows; DELETE does not.", "DELETE removes structure; TRUNCATE does not.", "TRUNCATE removes all rows quickly without logging each; DELETE logs each row.", "No difference."], ans: 2, exp: "TRUNCATE is DDL, DELETE is DML." },
       { q: "What does the HAVING clause do?", opts: ["Replaces WHERE", "Filters records after GROUP BY", "Sorts data", "Joins tables"], ans: 1, exp: "HAVING is used because WHERE cannot be used with aggregate functions." },
       { q: "What is a Left Join?", opts: ["Returns all records from the left table, and matched records from the right table", "Returns all records from the right table", "Returns only matched records in both", "Returns all records in both"], ans: 0, exp: "LEFT JOIN preserves the left table's rows." },
       { q: "What is an index in SQL?", opts: ["A primary key", "A data structure that improves data retrieval speed", "A type of table", "A backup copy"], ans: 1, exp: "Indexes speed up SELECT queries but slow down UPDATE/INSERTs." }
     ],
-    3: [ // Expert
+    3: [ 
       { q: "Which normal form resolves transitive dependencies?", opts: ["1NF", "2NF", "3NF", "BCNF"], ans: 2, exp: "3NF eliminates transitive dependencies." },
       { q: "What are ACID properties?", opts: ["Atomicity, Consistency, Isolation, Durability", "Accuracy, Completeness, Isolation, Data", "Atomicity, Concurrency, Integrity, Durability", "Allocation, Consistency, Integration, Database"], ans: 0, exp: "ACID properties guarantee reliable database transactions." },
       { q: "What is a CTE (Common Table Expression)?", opts: ["A permanent view", "A temporary named result set created using the WITH clause", "A stored procedure", "A clustered index"], ans: 1, exp: "CTEs simplify complex joins and subqueries." },
@@ -330,7 +383,6 @@
 
   const qBank = { theory: { 0:[], 1:[], 2:[], 3:[] }, practical: { 0:[], 1:[], 2:[], 3:[] } };
 
-  // Algorithm to expand core questions to EXACTLY 40 unique items per array
   function buildBank(source, dest, type) {
     for (let tier = 0; tier <= 3; tier++) {
       let pool = [...source[tier]];
@@ -340,7 +392,6 @@
       
       while (pool.length < 40) {
         counter++;
-        // Create unique variations so the user actually studies 40 different valid questions
         let clone = {...source[tier][counter % source[tier].length]};
         
         if (type === 'theory') {
@@ -351,7 +402,6 @@
           clone.q = clone.q + ` (Applying ${a} logic on ${t})`;
         }
         
-        // Randomize options slightly to prevent memorizing positional answers
         let newOpts = [...clone.opts];
         let correctStr = newOpts[clone.ans];
         newOpts.reverse(); 
@@ -369,7 +419,7 @@
 
 
   // --- APP STATE ---
-  let appMode = 'theory'; // 'theory' or 'practical'
+  let appMode = 'theory'; 
   let currentQuestions = [];
   let currentIndex = 0;
   let score = 0;
@@ -424,14 +474,12 @@
     els.dbViewer.classList.remove('show');
   }
 
-  // --- CORE LOGIC ---
   function startQuiz(difficulty) {
     els.startScreen.classList.add('hidden');
     els.progressRow.classList.remove('hidden');
     els.progressTrack.classList.remove('hidden');
     els.quizCard.classList.remove('hidden');
     
-    // Toggle DB viewer based on mode
     els.dbViewer.classList.toggle('show', appMode === 'practical');
     
     currentQuestions = buildQuestionSet(difficulty, appMode);
@@ -447,16 +495,13 @@
     const bank = mode === 'theory' ? qBank.theory : qBank.practical;
     
     if (diff === 'mixed') {
-      // Random between 30 and 100 questions (or max available)
       const targetCount = Math.floor(Math.random() * (100 - 30 + 1)) + 30; 
       let pool = [];
-      // Grab proportional amounts from all tiers
       for(let i=0; i<=3; i++) pool = pool.concat(bank[i]);
       pool = shuffle(pool).slice(0, targetCount);
       return pool;
     }
     
-    // Single Tier: strictly 40 questions
     return shuffle([...bank[diff]]);
   }
 
@@ -534,7 +579,6 @@
     els.nextBtn.disabled = false;
   }
 
-  // --- UTILS ---
   function shuffle(array) {
     for (let i = array.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
